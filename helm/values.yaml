@@ -1,0 +1,31 @@
+image:
+  repository: iomarmochtar/gitlab-token-updater
+  pullPolicy: IfNotPresent
+  tag: ""
+  registry:
+    url:
+    username:
+    password:
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Vault connection settings
+vault:
+  addr: "http://vault.local:8200"
+  kubernetesRole: "rotator"
+  tokenPathA: "gitlab/tokens/rotator-a"
+  tokenPathB: "gitlab/tokens/rotator-b"
+
+# CronJob schedule (default: daily at 10:00 UTC)
+schedule: "0 10 * * *"
+
+# Rotator manifest — the gitlab-token-updater config
+# manage_tokens blocks, hooks, include directives
+manifest:
+  config: ""

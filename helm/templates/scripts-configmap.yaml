@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gitlab-token-updater.fullname" . }}-scripts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitlab-token-updater.labels" . | nindent 4 }}
+data:
+  vault-put.sh: |
+    #!/bin/sh
+    set -e
+
+    # vault-put.sh — write a token value to Vault KV
+    # Expects: GL_NEW_TOKEN, KV_PATH, VAULT_ADDR, VAULT_TOKEN (or VAULT_TOKEN_FILE)
+    # No parent-env assumptions; sets its own PATH.
+
+    PATH=/usr/local/bin:/usr/bin:/bin
+    export PATH
+
+    # Required
+    KV_PATH="${KV_PATH:?KV_PATH must be set}"
+    GL_NEW_TOKEN="${GL_NEW_TOKEN:?GL_NEW_TOKEN must be set}"
+    VAULT_ADDR="${VAULT_ADDR:?VAULT_ADDR must be set}"
+
+    # Auth: prefer direct VAULT_TOKEN, fall back to reading from a file
+    if [ -z "${VAULT_TOKEN}" ] && [ -n "${VAULT_TOKEN_FILE}" ]; then
+      VAULT_TOKEN="$(cat "${VAULT_TOKEN_FILE}")"
+    fi
+    VAULT_TOKEN="${VAULT_TOKEN:?VAULT_TOKEN or VAULT_TOKEN_FILE must be set}"
+
+    export VAULT_ADDR VAULT_TOKEN
+
+    vault kv put "${KV_PATH}" value="${GL_NEW_TOKEN}"

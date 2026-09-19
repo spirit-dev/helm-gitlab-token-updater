@@ -1,0 +1,88 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "gitlab-token-updater.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitlab-token-updater.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ .Values.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ include "gitlab-token-updater.serviceAccountName" . }}
+          restartPolicy: OnFailure
+          volumes:
+            - name: tokens
+              emptyDir: {}
+            - name: manifest
+              configMap:
+                name: {{ include "gitlab-token-updater.fullname" . }}-manifest
+            - name: scripts
+              configMap:
+                name: {{ include "gitlab-token-updater.fullname" . }}-scripts
+                defaultMode: 0755
+          initContainers:
+            - name: vault-login
+              image: "hashicorp/vault:latest"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  echo "=== Vault login via Kubernetes SA ==="
+                  SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                  VAULT_TOKEN=$(vault write -field=token \
+                    auth/kubernetes/login \
+                    role="${VAULT_K8S_ROLE}" \
+                    jwt="${SA_TOKEN}")
+                  echo "${VAULT_TOKEN}" > /tmp/tokens/vault-token
+
+                  echo "=== Fetching GitLab token (A then B) ==="
+                  GL_TOKEN=$(VAULT_TOKEN="${VAULT_TOKEN}" vault kv get -field=value "${VAULT_TOKEN_PATH_A}" 2>/dev/null || true)
+                  if [ -z "${GL_TOKEN}" ]; then
+                    echo "Path A empty/missing, trying B..."
+                    GL_TOKEN=$(VAULT_TOKEN="${VAULT_TOKEN}" vault kv get -field=value "${VAULT_TOKEN_PATH_B}")
+                  fi
+                  GL_TOKEN="${GL_TOKEN:?No GitLab token found at either path}"
+                  echo "${GL_TOKEN}" > /tmp/tokens/gl-token
+                  echo "Token fetch complete."
+              env:
+                - name: VAULT_ADDR
+                  value: {{ .Values.vault.addr }}
+                - name: VAULT_K8S_ROLE
+                  value: {{ .Values.vault.kubernetesRole }}
+                - name: VAULT_TOKEN_PATH_A
+                  value: {{ .Values.vault.tokenPathA }}
+                - name: VAULT_TOKEN_PATH_B
+                  value: {{ .Values.vault.tokenPathB }}
+              volumeMounts:
+                - name: tokens
+                  mountPath: /tmp/tokens
+          containers:
+            - name: {{ .Chart.Name }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  export GL_TOKEN=$(cat /tmp/tokens/gl-token)
+                  export VAULT_TOKEN_FILE=/tmp/tokens/vault-token
+                  exec gitlab-token-updater --config /etc/gitlab-token-updater/config.yml
+              volumeMounts:
+                - name: tokens
+                  mountPath: /tmp/tokens
+                  readOnly: true
+                - name: manifest
+                  mountPath: /etc/gitlab-token-updater
+                  readOnly: true
+                - name: scripts
+                  mountPath: /usr/local/bin
+                  readOnly: true
+              env:
+                - name: VAULT_ADDR
+                  value: {{ .Values.vault.addr }}
+          imagePullSecrets:
+            - name: gitlab-registry-key

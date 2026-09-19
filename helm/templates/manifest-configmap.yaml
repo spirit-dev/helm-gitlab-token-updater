@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gitlab-token-updater.fullname" . }}-manifest
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitlab-token-updater.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    {{- .Values.manifest.config | nindent 4 }}

@@ -1,0 +1,3 @@
+1. CronJob {{ include "gitlab-token-updater.fullname" . }} will rotate GitLab tokens. Schedule: {{ .Values.schedule }}
+2. Vault at {{ .Values.vault.addr }} — ensure kubernetes auth is enabled with role "{{ .Values.vault.kubernetesRole }}"
+3. Token paths: A={{ .Values.vault.tokenPathA }}, B={{ .Values.vault.tokenPathB }}
