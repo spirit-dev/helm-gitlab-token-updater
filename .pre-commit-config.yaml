@@ -1,0 +1,84 @@
+repos:
+  # Some out-of-the-box hooks for pre-commit.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files # Prevent giant files from being committed.
+      - id: check-case-conflict # Check for files with names that would conflict on a case-insensitive filesystem
+      - id: check-json
+      - id: check-yaml
+        exclude: ^helm/templates/
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-executables-have-shebangs
+      - id: pretty-format-json
+        args: [--autofix]
+      - id: no-commit-to-branch
+        args: [--branch, master, --branch, main]
+
+  # Helm Lint
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.29
+    hooks:
+      - id: helmlint
+
+  # A smarter Dockerfile linter that helps you build best practice Docker images
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+
+  # Detect Secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["-n"]
+        exclude: package.lock.json
+
+  # GitLeaks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.27.2
+    hooks:
+      - id: gitleaks
+
+  # Markdown TOC generator
+  - repo: https://github.com/jsh9/markdown-toc-creator
+    rev: 0.0.10
+    hooks:
+      - id: markdown-toc-creator
+        args:
+          [
+            "README.md.j2",
+            "--exclude",
+            '\.git|\.tox|\.pytest_cache|README.md(?!.j2)',
+          ]
+
+  # Markdown templating
+  - repo: local
+    hooks:
+      - id: md-template
+        name: markdown templating
+        entry: python .gitlab/scripts/markdown.py
+        language: system
+        pass_filenames: false
+        args:
+          [
+            "--repo-path",
+            ".",
+            "--input",
+            "README.md.j2",
+            "--output",
+            "README.md",
+            "--type",
+            "gitlab",
+          ]
+
+  # Command Line Interface for MarkdownLint
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.45.0
+    hooks:
+      - id: markdownlint
+        args: ["-f"]

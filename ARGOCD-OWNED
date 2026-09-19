@@ -1,0 +1,17 @@
+
+-----------------------------------------------------------------------------------
+-                                                                                 -
+-                               \033[0;33m╔═╗┬─┐┌─┐┌─┐╔═╗╔╦╗\033[0m                                -
+-                               \033[0;33m╠═╣├┬┘│ ┬│ │║   ║║\033[0m                                -
+-                               \033[0;33m╩ ╩┴└─└─┘└─┘╚═╝═╩╝\033[0m                                -
+-                                                                                 -
+- \033[0;31mThis repository is managed by ArgoCD. You may be tempted to use the manual way.\033[0m -
+- \033[0;31mBe warned that your action may be overriden by ArgoCD.\033[0m                          -
+-                                                                                 -
+- Reach out ArgoCD here:                                                          -
+-                 \033[0;32mhttps://argocd.com\033[0m                                              -
+-                                                                                 -
+- Documentation here:                                                             -
+-                 \033[0;32mhttps://gitlab-internal.spirit-dev.net/\033[0m                         -
+-                                                                                 -
+-----------------------------------------------------------------------------------

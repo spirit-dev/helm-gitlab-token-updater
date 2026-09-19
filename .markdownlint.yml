@@ -1,0 +1,6 @@
+default: true
+MD004:
+  style: "dash"
+MD013:
+  line_length: 250
+# MD036: false # Emphasis used instead of a heading
