@@ -25,7 +25,12 @@ vault:
 # CronJob schedule (default: daily at 10:00 UTC)
 schedule: "0 10 * * *"
 
-# Rotator manifest — the gitlab-token-updater config
-# manage_tokens blocks, hooks, include directives
+# Run tool in --dry-run mode (read-only inventory validation)
+dryRun: false
+
+# Rotator manifests (gitlab-token-updater config, rendered into a ConfigMap).
+# ${VAR} placeholders are resolved by the tool from container env, not by Helm.
 manifest:
   config: ""
+  # optional include file referenced from config via `include: self-rotation.yml`
+  selfRotation: ""

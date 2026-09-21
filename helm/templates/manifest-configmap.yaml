@@ -7,4 +7,8 @@ metadata:
     {{- include "gitlab-token-updater.labels" . | nindent 4 }}
 data:
   config.yml: |
-    {{- .Values.manifest.config | nindent 4 }}
+{{ .Values.manifest.config | indent 4 }}
+{{- with .Values.manifest.selfRotation }}
+  self-rotation.yml: |
+{{ . | indent 4 }}
+{{- end }}

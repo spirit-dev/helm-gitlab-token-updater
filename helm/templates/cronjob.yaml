@@ -68,9 +68,8 @@ spec:
                 - /bin/sh
                 - -c
                 - |
-                  export GL_TOKEN=$(cat /tmp/tokens/gl-token)
-                  export VAULT_TOKEN_FILE=/tmp/tokens/vault-token
-                  exec gitlab-token-updater --config /etc/gitlab-token-updater/config.yml
+                  export GL_RENEWER_TOKEN=$(cat /tmp/tokens/gl-token)
+                  exec gitlab-token-updater -c /etc/gitlab-token-updater/config.yml{{ if .Values.dryRun }} --dry-run{{ end }}
               volumeMounts:
                 - name: tokens
                   mountPath: /tmp/tokens
@@ -84,5 +83,7 @@ spec:
               env:
                 - name: VAULT_ADDR
                   value: {{ .Values.vault.addr }}
+                - name: VAULT_TOKEN_FILE
+                  value: /tmp/tokens/vault-token
           imagePullSecrets:
             - name: gitlab-registry-key

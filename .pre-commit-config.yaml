@@ -82,3 +82,4 @@ repos:
     hooks:
       - id: markdownlint
         args: ["-f"]
+        exclude: ^(.pi|openspec)/.*\.md$

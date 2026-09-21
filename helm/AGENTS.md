@@ -13,6 +13,7 @@ Owns all Helm templates (`templates/`), values files (`values.yaml`, `values.tur
 - Deployment target namespace: `gitlab-next`.
 - Release managed primarily via ArgoCD (see root `ARGOCD-OWNED`).
 - Environment-specific values must be defined in `values.<env>.yaml`.
+- Rotation manifests live inline in values under `manifest.config` and `manifest.selfRotation` (rendered into the manifest ConfigMap); `${VAR}` placeholders are resolved by the tool from container env, never by Helm.
 - Helm chart version in `Chart.yaml` follows semantic versioning.
 
 ## Work Guidance
