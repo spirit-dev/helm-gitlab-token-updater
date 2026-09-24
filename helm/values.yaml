@@ -19,8 +19,8 @@ serviceAccount:
 vault:
   addr: "http://vault.local:8200"
   kubernetesRole: "rotator"
-  tokenPathA: "gitlab/tokens/rotator-a"
-  tokenPathB: "gitlab/tokens/rotator-b"
+  tokenPathA: "gitlab/tokens/rotator-pat-a"
+  tokenPathB: "gitlab/tokens/rotator-pat-b"
   # ServiceAccount whose long-lived token Vault uses for TokenReview
   # (kubernetes auth config: token_reviewer_jwt). Create=false by default;
   # enable in env values when Vault runs outside the cluster.

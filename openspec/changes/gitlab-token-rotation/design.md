@@ -70,7 +70,7 @@ Manifest lives in this repo (`helm/gitlab`), one `manage_tokens[]` block per tar
 
 1. Create bot user + PATs A/B (admin `api` scope) in GitLab.
 2. Enable Vault `kubernetes` auth method + `rotator` policy (read/write `gitlab/tokens/*`, read only own paths).
-3. `vault kv put gitlab/tokens/rotator-a value=...` (and `-b`).
+3. `vault kv put gitlab/tokens/rotator-pat-a value=...` (and `rotator-pat-b`).
 4. Create CI variables and ESO ExternalSecrets (initial values seeded manually).
 5. Deploy CronJob via ArgoCD → run `--dry-run` → first real run.
 

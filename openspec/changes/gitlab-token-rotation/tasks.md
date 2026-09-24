@@ -9,13 +9,13 @@
 ## 2. Vault preparation (NAS)
 
 - [x] 2.1 Enable the Vault `kubernetes` auth method against the k3s cluster and create the `rotator` policy (read/write `gitlab/tokens/*`); verify a test pod authenticates with its ServiceAccount token
-- [x] 2.2 Create the bot user PATs A/B in GitLab (admin `api` scope) and seed `gitlab/tokens/rotator-a` and `rotator-b` in Vault KV; verify with `vault kv get`
+- [x] 2.2 Create the bot user PATs A/B in GitLab (admin `api` scope) and seed `gitlab/tokens/rotator-pat-a` and `rotator-pat-b` in Vault KV; verify with `vault kv get`
 
 ## 3. Rotator deployment (k8s)
 
 - [ ] 3.1 Write the rotation manifest (from task 1.1 inventory): `manage_tokens[]` for all PATs/GATs with `update_var` hooks for the CI variables and `exec_cmd` hooks for Vault writes; self-rotation A/B in an `include:` file; verify the YAML validates against the tool's config schema (run tool `--dry-run`)
 - [x] 3.2 Write `vault-put.sh` (reads `GL_NEW_TOKEN`, `KV_PATH`, `VAULT_ADDR`; no parent-env assumptions) and verify locally with `vault kv put/get` round-trip
-- [x] 3.3 Deploy the CronJob + ServiceAccount + RBAC via ArgoCD-owned manifests in `helm/gitlab` (init step: SA-token → Vault login, fetch `rotator-a` with `rotator-b` fallback; then run the tool with the manifest); verify the first scheduled dry-run job completes with a clean inventory report
+- [x] 3.3 Deploy the CronJob + ServiceAccount + RBAC via ArgoCD-owned manifests in `helm/gitlab` (init step: SA-token → Vault login, fetch `rotator-pat-a` with `rotator-pat-b` fallback; then run the tool with the manifest); verify the first scheduled dry-run job completes with a clean inventory report
 - [ ] 3.4 Run one `--force` rotation on a low-stakes token in a manual job; verify the new value lands in Vault KV, the CI variable updates, and the old token is revoked
 
 ## 4. Kubernetes registry-secret fan-out
