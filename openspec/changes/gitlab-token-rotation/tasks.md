@@ -4,7 +4,7 @@
 
 - [x] 1.1 Dump existing GitLab tokens (admin API or Sick-IT `dump-tokens.sh` adapted), existing CI/CD variables (group + project), and all `*-registry-key` k8s secrets across namespaces; produce the token inventory that will seed the manifest
 - [x] 1.2 Check the cluster for an existing secret-sync tool (ESO, kubectl-vault_sync, or equivalent) and decide reuse vs. deploy `external-secrets-operator`; record the decision in design.md
-- [ ] 1.3 Verify on the live GitLab instance that rotate API calls with explicit `expires_at` behave as expected (one test PAT, API call from curl), confirming compatibility with the installed GitLab version
+- [x] 1.3 Verify on the live GitLab instance that rotate API calls with explicit `expires_at` behave as expected (one test PAT, API call from curl), confirming compatibility with the installed GitLab version
 
 ## 2. Vault preparation (NAS)
 

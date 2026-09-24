@@ -56,7 +56,7 @@ Alternative considered: single non-expiring admin PAT + monitoring — rejected 
     env: { VAULT_ADDR: "http://<nas>:8200", KV_PATH: "gitlab/tokens/renovate" }
 ```
 
-Script body: `vault kv put "$KV_PATH" value="$GL_NEW_TOKEN"` (plus token fetch for Vault itself — the SA-token exchange happens in the job entrypoint, and the resulting VAULT_TOKEN is passed via the hook env or written to a file read by the script).
+Script body: HTTP write to the KV-v2 data path (busybox `wget --post-data`, rotator image has no `vault`/`curl` CLI — verified in image); token fetch for Vault itself is the SA-token exchange in the job entrypoint, and the resulting VAULT_TOKEN is passed via the hook env or written to a file read by the script.
 
 ### D5: k8s registry secrets via external-secrets-operator
 
