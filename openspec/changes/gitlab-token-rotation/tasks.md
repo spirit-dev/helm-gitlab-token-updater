@@ -3,13 +3,13 @@
 ## 1. Inventory and environment discovery
 
 - [x] 1.1 Dump existing GitLab tokens (admin API or Sick-IT `dump-tokens.sh` adapted), existing CI/CD variables (group + project), and all `*-registry-key` k8s secrets across namespaces; produce the token inventory that will seed the manifest
-- [ ] 1.2 Check the cluster for an existing secret-sync tool (ESO, kubectl-vault_sync, or equivalent) and decide reuse vs. deploy `external-secrets-operator`; record the decision in design.md
+- [x] 1.2 Check the cluster for an existing secret-sync tool (ESO, kubectl-vault_sync, or equivalent) and decide reuse vs. deploy `external-secrets-operator`; record the decision in design.md
 - [ ] 1.3 Verify on the live GitLab instance that rotate API calls with explicit `expires_at` behave as expected (one test PAT, API call from curl), confirming compatibility with the installed GitLab version
 
 ## 2. Vault preparation (NAS)
 
-- [ ] 2.1 Enable the Vault `kubernetes` auth method against the k3s cluster and create the `rotator` policy (read/write `gitlab/tokens/*`); verify a test pod authenticates with its ServiceAccount token
-- [ ] 2.2 Create the bot user PATs A/B in GitLab (admin `api` scope) and seed `gitlab/tokens/rotator-a` and `rotator-b` in Vault KV; verify with `vault kv get`
+- [x] 2.1 Enable the Vault `kubernetes` auth method against the k3s cluster and create the `rotator` policy (read/write `gitlab/tokens/*`); verify a test pod authenticates with its ServiceAccount token
+- [x] 2.2 Create the bot user PATs A/B in GitLab (admin `api` scope) and seed `gitlab/tokens/rotator-a` and `rotator-b` in Vault KV; verify with `vault kv get`
 
 ## 3. Rotator deployment (k8s)
 

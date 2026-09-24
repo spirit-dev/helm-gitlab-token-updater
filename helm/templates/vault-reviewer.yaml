@@ -1,0 +1,24 @@
+{{- if .Values.vault.tokenReviewer.create -}}
+{{/* ServiceAccount + long-lived token Secret used by Vault (running outside
+     the cluster) as the token_reviewer_jwt for auth/kubernetes/config.
+     The token has no permissions — it only backs TokenReview calls. */}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.vault.tokenReviewer.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitlab-token-updater.labels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.vault.tokenReviewer.name }}-token
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitlab-token-updater.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/service-account.name: {{ .Values.vault.tokenReviewer.name }}
+type: kubernetes.io/service-account-token
+{{- end }}

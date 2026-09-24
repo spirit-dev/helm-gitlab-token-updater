@@ -21,4 +21,18 @@ VAULT_TOKEN="${VAULT_TOKEN:?VAULT_TOKEN or VAULT_TOKEN_FILE must be set}"
 
 export VAULT_ADDR VAULT_TOKEN
 
-vault kv put "${KV_PATH}" value="${GL_NEW_TOKEN}"
+# Prefer the vault CLI; fall back to the KV v2 HTTP API via curl
+# (the tool image has no vault binary).
+if command -v vault >/dev/null 2>&1; then
+  vault kv put "${KV_PATH}" value="${GL_NEW_TOKEN}"
+  exit 0
+fi
+
+MOUNT="${KV_PATH%%/*}"
+REST="${KV_PATH#*/}"
+ESCAPED=$(printf '%s' "${GL_NEW_TOKEN}" | sed 's/\\/\\\\/g; s/"/\\"/g')
+curl -fsS -X PUT \
+  -H "X-Vault-Token: ${VAULT_TOKEN}" \
+  -d "{\"data\":{\"value\":\"${ESCAPED}\"}}" \
+  "${VAULT_ADDR}/v1/${MOUNT}/data/${REST}" >/dev/null
+echo "wrote ${KV_PATH} via Vault API"

@@ -94,8 +94,7 @@ Manifest lives in this repo (`helm/gitlab`), one `manage_tokens[]` block per tar
 
 Rollback: CronJob is additive; revert by deleting the CronJob/ExternalSecrets and restoring chart secrets — token values in GitLab remain valid regardless.
 
-## Open Questions
-
-- Exact ESO deployment in this cluster: does an equivalent secret-sync tool already exist under `helm/`? (Answer during implementation task 1; approach unchanged either way.)
+## Resolved Questions
+- Cluster secret-sync tooling (task 1.2): no equivalent exists — checked live cluster (no external-secrets CRDs, no vault agents, no secrets-store drivers, no sync controllers across all namespaces); only ArgoCD-managed charts. Decision: deploy `external-secrets-operator` fresh via ArgoCD.
 - Mirror of the rotator image to the internal registry or direct Docker Hub pull — deploy-time choice, no design impact.
 - Alert wiring for failed runs (existing monitoring stack vs. GitLab notification channels) — can be attached after first real run.
