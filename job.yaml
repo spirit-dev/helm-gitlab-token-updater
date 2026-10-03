@@ -1,0 +1,77 @@
+# One-off test resources for a single-token --force rotation (openspec change
+# gitlab-token-rotation, task 3.4). Applies the trimmed manifest for
+# renovatebot-test and a Job shaped like the deployed CronJob but running the
+# tool with --force instead of --dry-run.
+#
+#   kubectl apply -f job.yaml
+#   kubectl -n gitlab-next logs -f job/gtu-force-test --all-containers
+#   kubectl -n gitlab-next delete job/gtu-force-test cm/gtu-manifest-test   # cleanup
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gtu-manifest-test
+  namespace: gitlab-next
+data:
+  config.yml: |
+    host: https://gitlab-internal.spirit-dev.net
+    default_hook_retry: 5
+    default_renew_before: 14d
+    default_expiry_after_rotate: 3M
+    manage_tokens:
+      - type: personal
+        access_tokens:
+          - name: renovatebot-test
+            hooks:
+              - type: exec_cmd
+                args:
+                  path: /usr/local/bin/vault-put.sh
+                  env:
+                    KV_PATH: gitlab/tokens/renovatebot-test
+                    VAULT_ADDR: ${VAULT_ADDR}
+                    VAULT_TOKEN_FILE: ${VAULT_TOKEN_FILE}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gtu-force-test
+  namespace: gitlab-next
+spec:
+  template:
+    spec:
+      serviceAccountName: gitlab-token-updater
+      restartPolicy: Never
+      imagePullSecrets: [{name: gitlab-registry-key}]
+      volumes:
+        - {name: tokens, emptyDir: {}}
+        - {name: manifest, configMap: {name: gtu-manifest-test}}
+        - {name: scripts, configMap: {name: gitlab-token-updater-scripts, defaultMode: 0755}}
+      initContainers:
+        - name: vault-login
+          image: hashicorp/vault:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              export VAULT_ADDR="http://192.168.0.52:8200"
+              SA=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VT=$(vault write -field=token auth/kubernetes/login role=rotator jwt="$SA")
+              export VAULT_TOKEN="$VT"
+              echo "$VT" > /tmp/tokens/vault-token
+              GL=$(vault kv get -field=value gitlab/tokens/rotator-pat-a 2>/dev/null || vault kv get -field=value gitlab/tokens/rotator-pat-b)
+              echo "$GL" > /tmp/tokens/gl-token
+          volumeMounts: [{name: tokens, mountPath: /tmp/tokens}]
+      containers:
+        - name: rotator
+          image: gitlab-registry-internal.spirit-dev.net/infrastructure/docker/gitlab-token-updater:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export GL_RENEWER_TOKEN=$(cat /tmp/tokens/gl-token)
+              exec gitlab-token-updater -c /etc/gitlab-token-updater/config.yml --force
+          volumeMounts:
+            - {name: tokens, mountPath: /tmp/tokens, readOnly: true}
+            - {name: manifest, mountPath: /etc/gitlab-token-updater, readOnly: true}
+            - {name: scripts, mountPath: /usr/local/bin, readOnly: true}
+          env:
+            - {name: VAULT_ADDR, value: "http://192.168.0.52:8200"}
+            - {name: VAULT_TOKEN_FILE, value: /tmp/tokens/vault-token}

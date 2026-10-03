@@ -2,10 +2,6 @@ image:
   repository: iomarmochtar/gitlab-token-updater
   pullPolicy: IfNotPresent
   tag: ""
-  registry:
-    url:
-    username:
-    password:
 
 nameOverride: ""
 fullnameOverride: ""

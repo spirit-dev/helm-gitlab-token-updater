@@ -64,7 +64,9 @@ Registry tokens land in Vault KV (`gitlab/tokens/<name>`); ESO `ExternalSecret` 
 
 ### D6: Manifest location and shape
 
-Manifest lives in this repo (`helm/gitlab`), one `manage_tokens[]` block per target group/repo/personal, `include:` split between the standard inventory and `internal.yml`-style self-rotation entries (A/B credentials). Schedule: monthly (`renew_before: 14d`, `expiry_after_rotate: 3M` defaults — tool defaults). Image: `iomarmochtar/gitlab-token-updater` from Docker Hub (mirror to internal registry if policy requires).
+Manifest lives in this repo (`helm/gitlab`), one `manage_tokens[]` block per target group/repo/personal, `include:`-based splitting for group/repository blocks. Schedule: monthly (`renew_before: 14d`, `expiry_after_rotate: 3M` defaults — tool defaults). Image: `iomarmochtar/gitlab-token-updater` from Docker Hub (mirror to internal registry if policy requires).
+
+**Amendment (live testing):** `include:` splitting is NOT viable for the self-rotation A/B pair — the tool rejects two `type: personal` manage_token blocks as duplicates (dedup key is `type+path`; personal has no path). All personal tokens (inventory + A/B pair) live in a single personal block in `manifest.config`; `values.manifest.selfRotation` stays unused (include mechanism remains valid for group/repository splits).
 
 ### D7: Bootstrap order (one-time, manual)
 

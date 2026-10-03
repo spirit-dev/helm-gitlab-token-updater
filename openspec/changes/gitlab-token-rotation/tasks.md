@@ -16,11 +16,11 @@
 - [ ] 3.1 Write the rotation manifest (from task 1.1 inventory): `manage_tokens[]` for all PATs/GATs with `update_var` hooks for the CI variables and `exec_cmd` hooks for Vault writes; self-rotation A/B in an `include:` file; verify the YAML validates against the tool's config schema (run tool `--dry-run`)
 - [x] 3.2 Write `vault-put.sh` (reads `GL_NEW_TOKEN`, `KV_PATH`, `VAULT_ADDR`; no parent-env assumptions) and verify locally with `vault kv put/get` round-trip
 - [x] 3.3 Deploy the CronJob + ServiceAccount + RBAC via ArgoCD-owned manifests in `helm/gitlab` (init step: SA-token → Vault login, fetch `rotator-pat-a` with `rotator-pat-b` fallback; then run the tool with the manifest); verify the first scheduled dry-run job completes with a clean inventory report
-- [ ] 3.4 Run one `--force` rotation on a low-stakes token in a manual job; verify the new value lands in Vault KV, the CI variable updates, and the old token is revoked
+- [x] 3.4 Run one `--force` rotation on a low-stakes token in a manual job; verify the new value lands in Vault KV, the CI variable updates, and the old token is revoked
 
 ## 4. Kubernetes registry-secret fan-out
 
-- [ ] 4.1 Deploy external-secrets-operator (or reuse per task 1.2) and create `ExternalSecret` resources for each registry secret under `gitlab/tokens/*`; verify k8s secrets materialize with current values before touching any chart
+- [x] 4.1 Deploy external-secrets-operator (or reuse per task 1.2) and create `ExternalSecret` resources for each registry secret under `gitlab/tokens/*`; verify k8s secrets materialize with current values before touching any chart
 - [ ] 4.2 Remove `*-registry-key` secrets from the helm charts and verify pods pull images successfully after a rollout (per design D5, sha256 checks on those files may break — accepted)
 
 ## 5. Validation and handover
