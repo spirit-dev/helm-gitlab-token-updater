@@ -21,7 +21,7 @@
 ## 4. Kubernetes registry-secret fan-out
 
 - [x] 4.1 Deploy external-secrets-operator (or reuse per task 1.2) and create `ExternalSecret` resources for each registry secret under `gitlab/tokens/*`; verify k8s secrets materialize with current values before touching any chart
-- [ ] 4.2 Remove `*-registry-key` secrets from the helm charts and verify pods pull images successfully after a rollout (per design D5, sha256 checks on those files may break — accepted)
+- [x] 4.2 Remove `*-registry-key` secrets from the helm charts and verify pods pull images successfully after a rollout (per design D5, sha256 checks on those files may break — accepted)
 
 ## 5. Validation and handover
 
