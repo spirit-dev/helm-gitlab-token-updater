@@ -57,10 +57,26 @@ data:
       GL_TOKEN="$(cat "${GL_TOKEN_FILE}")"
     fi
     GL_TOKEN="${GL_TOKEN:?GL_TOKEN or GL_TOKEN_FILE must be set}"
-    if [ -n "${VAR_DESCRIPTION}" ]; then
-      PAYLOAD="{\"value\":\"${GL_NEW_TOKEN}\",\"description\":\"${VAR_DESCRIPTION}\"}"
+    if [ "${VAR_FORMAT}" = "dockerconfigjson" ]; then
+      DOCKER_REGISTRY_HOST="${DOCKER_REGISTRY_HOST:?DOCKER_REGISTRY_HOST must be set for dockerconfigjson format}"
+      DOCKER_REGISTRY_USER="${DOCKER_REGISTRY_USER:?DOCKER_REGISTRY_USER must be set for dockerconfigjson format}"
+      AUTH="$(printf '%s:%s' "${DOCKER_REGISTRY_USER}" "${GL_NEW_TOKEN}" | base64 | tr -d '\r\n')"
+      VAR_VALUE="{\"auths\":{\"${DOCKER_REGISTRY_HOST}\":{\"auth\":\"${AUTH}\"}}}"
     else
-      PAYLOAD="{\"value\":\"${GL_NEW_TOKEN}\"}"
+      VAR_VALUE="${GL_NEW_TOKEN}"
+    fi
+    ESCAPED_VALUE="$(printf '%s' "${VAR_VALUE}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+    if [ -n "${VAR_DESCRIPTION}" ]; then
+      ESCAPED_DESC="$(printf '%s' "${VAR_DESCRIPTION}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+      PAYLOAD="{\"value\":\"${ESCAPED_VALUE}\",\"description\":\"${ESCAPED_DESC}\"}"
+    else
+      PAYLOAD="{\"value\":\"${ESCAPED_VALUE}\"}"
+    fi
+    if [ -n "${VAR_MASKED}" ]; then
+      PAYLOAD="${PAYLOAD%\}},\"masked\":${VAR_MASKED}}"
+    fi
+    if [ -n "${VAR_TYPE}" ]; then
+      PAYLOAD="${PAYLOAD%\}},\"variable_type\":\"${VAR_TYPE}\"}"
     fi
     RESP="$(wget -qO- --no-check-certificate \
       --header "PRIVATE-TOKEN: ${GL_TOKEN}" \
@@ -123,6 +139,18 @@ data:
                   path: /usr/local/bin/gitlab-instance-var-put.sh
                   env:
                     VAR_NAME: DOCKER_REGISTRY_TOKEN
+                    VAR_DESCRIPTION: "Managed by gitlab token updater. Belongs to PAT from user DockerRegistryCache/registry-token"
+                    GITLAB_HOST: ${GITLAB_HOST}
+                    GL_TOKEN_FILE: ${GL_TOKEN_FILE}
+              - type: exec_cmd
+                args:
+                  path: /usr/local/bin/gitlab-instance-var-put.sh
+                  env:
+                    VAR_NAME: DOCKER_AUTH_CONFIG
+                    VAR_FORMAT: dockerconfigjson
+                    DOCKER_REGISTRY_HOST: gitlab-registry-internal.spirit-dev.net
+                    DOCKER_REGISTRY_USER: DockerRegistryCache
+                    VAR_MASKED: "false"
                     VAR_DESCRIPTION: "Managed by gitlab token updater. Belongs to PAT from user DockerRegistryCache/registry-token"
                     GITLAB_HOST: ${GITLAB_HOST}
                     GL_TOKEN_FILE: ${GL_TOKEN_FILE}

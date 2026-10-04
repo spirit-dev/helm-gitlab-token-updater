@@ -3,7 +3,8 @@
 # Runs inside the rotator container (Alpine, no curl CLI): uses busybox wget
 # with X-HTTP-Method-Override: PUT against the GitLab REST API.
 # Expects: GL_NEW_TOKEN, VAR_NAME, GITLAB_HOST, GL_TOKEN (or GL_TOKEN_FILE)
-# Optional: VAR_DESCRIPTION
+# Optional: VAR_DESCRIPTION, VAR_FORMAT (e.g. dockerconfigjson),
+#           DOCKER_REGISTRY_HOST, DOCKER_REGISTRY_USER, VAR_MASKED, VAR_TYPE
 # No parent-env assumptions; sets its own PATH.
 
 PATH=/usr/local/bin:/usr/bin:/bin
@@ -20,11 +21,31 @@ if [ -z "${GL_TOKEN}" ] && [ -n "${GL_TOKEN_FILE}" ]; then
 fi
 GL_TOKEN="${GL_TOKEN:?GL_TOKEN or GL_TOKEN_FILE must be set}"
 
-# Build JSON payload
-if [ -n "${VAR_DESCRIPTION}" ]; then
-  PAYLOAD="{\"value\":\"${GL_NEW_TOKEN}\",\"description\":\"${VAR_DESCRIPTION}\"}"
+# Format value if requested
+if [ "${VAR_FORMAT}" = "dockerconfigjson" ]; then
+  DOCKER_REGISTRY_HOST="${DOCKER_REGISTRY_HOST:?DOCKER_REGISTRY_HOST must be set for dockerconfigjson format}"
+  DOCKER_REGISTRY_USER="${DOCKER_REGISTRY_USER:?DOCKER_REGISTRY_USER must be set for dockerconfigjson format}"
+  AUTH="$(printf '%s:%s' "${DOCKER_REGISTRY_USER}" "${GL_NEW_TOKEN}" | base64 | tr -d '\r\n')"
+  VAR_VALUE="{\"auths\":{\"${DOCKER_REGISTRY_HOST}\":{\"auth\":\"${AUTH}\"}}}"
 else
-  PAYLOAD="{\"value\":\"${GL_NEW_TOKEN}\"}"
+  VAR_VALUE="${GL_NEW_TOKEN}"
+fi
+
+# Escape JSON characters for PUT payload
+ESCAPED_VALUE="$(printf '%s' "${VAR_VALUE}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+
+if [ -n "${VAR_DESCRIPTION}" ]; then
+  ESCAPED_DESC="$(printf '%s' "${VAR_DESCRIPTION}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  PAYLOAD="{\"value\":\"${ESCAPED_VALUE}\",\"description\":\"${ESCAPED_DESC}\"}"
+else
+  PAYLOAD="{\"value\":\"${ESCAPED_VALUE}\"}"
+fi
+
+if [ -n "${VAR_MASKED}" ]; then
+  PAYLOAD="${PAYLOAD%\}},\"masked\":${VAR_MASKED}}"
+fi
+if [ -n "${VAR_TYPE}" ]; then
+  PAYLOAD="${PAYLOAD%\}},\"variable_type\":\"${VAR_TYPE}\"}"
 fi
 
 # GitLab API update for instance variable uses PUT.

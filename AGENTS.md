@@ -79,9 +79,11 @@ Default section order:
 
 ## User Preferences
 
-When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
+When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md:
+- Next planned feature: Move the `gitlab-token-updater` Docker image (ARM64 version) to a dedicated repository, treating its build and release lifecycle separately.
 
 ## Child DOX Index
 
+- `gitlab-token-updater/AGENTS.md` - Go application source, build tooling, and Docker container images
 - `helm/AGENTS.md` - Helm chart templates, scripts, values configurations, and packaging rules
 - `openspec/AGENTS.md` - OpenSpec specifications, change lifecycle artifacts, and configurations
