@@ -9,6 +9,5 @@ data:
   config.yml: |
 {{ .Values.manifest.config | indent 4 }}
 {{- with .Values.manifest.selfRotation }}
-  self-rotation.yml: |
-{{ . | indent 4 }}
+{{ . | indent 10 }}
 {{- end }}

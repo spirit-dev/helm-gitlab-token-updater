@@ -1,11 +1,77 @@
-# One-off test resources for a single-token --force rotation (openspec change
-# gitlab-token-rotation, task 3.4). Applies the trimmed manifest for
-# renovatebot-test and a Job shaped like the deployed CronJob but running the
-# tool with --force instead of --dry-run.
+# One-off test and verification resources for gitlab-token-updater:
 #
-#   kubectl apply -f job.yaml
-#   kubectl -n gitlab-next logs -f job/gtu-force-test --all-containers
-#   kubectl -n gitlab-next delete job/gtu-force-test cm/gtu-manifest-test   # cleanup
+# Available Jobs in this manifest:
+#   1. job/gtu-force-test             - Force-rotate renovatebot-test (Vault KV + repo CI var + instance CI var)
+#   2. job/gtu-force-registry-test    - Force-rotate registry-token (Vault KV + instance CI var)
+#   3. job/gtu-fail-unreachable-test  - Failure visibility check (unreachable Vault address)
+#   4. job/gtu-ab-fallback-test       - A/B pair recovery check (Path A missing -> falls back to Path B)
+#
+# Usage:
+#   # Apply all test resources:
+#   KUBECONFIG=~/.kube/config_turingpi kubectl apply -f job.yaml
+#
+#   # Inspect logs:
+#   KUBECONFIG=~/.kube/config_turingpi kubectl -n gitlab-next logs -f job/gtu-force-test -c rotator
+#   KUBECONFIG=~/.kube/config_turingpi kubectl -n gitlab-next logs -f job/gtu-force-registry-test -c rotator
+#   KUBECONFIG=~/.kube/config_turingpi kubectl -n gitlab-next logs job/gtu-fail-unreachable-test -c vault-login
+#   KUBECONFIG=~/.kube/config_turingpi kubectl -n gitlab-next logs job/gtu-ab-fallback-test -c vault-login
+#
+#   # Cleanup:
+#   KUBECONFIG=~/.kube/config_turingpi kubectl -n gitlab-next delete job \
+#     gtu-force-test gtu-force-registry-test gtu-fail-unreachable-test gtu-ab-fallback-test \
+#     cm gtu-manifest-test gtu-scripts-test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gtu-scripts-test
+  namespace: gitlab-next
+data:
+  vault-put.sh: |
+    #!/bin/sh
+    PATH=/usr/local/bin:/usr/bin:/bin
+    export PATH
+    KV_PATH="${KV_PATH:?KV_PATH must be set}"
+    GL_NEW_TOKEN="${GL_NEW_TOKEN:?GL_NEW_TOKEN must be set}"
+    VAULT_ADDR="${VAULT_ADDR:?VAULT_ADDR must be set}"
+    if [ -z "${VAULT_TOKEN}" ] && [ -n "${VAULT_TOKEN_FILE}" ]; then
+      VAULT_TOKEN="$(cat "${VAULT_TOKEN_FILE}")"
+    fi
+    VAULT_TOKEN="${VAULT_TOKEN:?VAULT_TOKEN or VAULT_TOKEN_FILE must be set}"
+    MOUNT="${KV_PATH%%/*}"
+    REST="${KV_PATH#*/}"
+    RESP="$(wget -qO- --header "X-Vault-Token: ${VAULT_TOKEN}" \
+      --post-data "{\"data\":{\"value\":\"${GL_NEW_TOKEN}\"}}" \
+      "${VAULT_ADDR}/v1/${MOUNT}/data/${REST}")" || {
+      echo "vault write failed for ${KV_PATH}: ${RESP:-no response}" >&2
+      exit 1
+    }
+  gitlab-instance-var-put.sh: |
+    #!/bin/sh
+    PATH=/usr/local/bin:/usr/bin:/bin
+    export PATH
+    VAR_NAME="${VAR_NAME:?VAR_NAME must be set}"
+    GL_NEW_TOKEN="${GL_NEW_TOKEN:?GL_NEW_TOKEN must be set}"
+    GITLAB_HOST="${GITLAB_HOST:?GITLAB_HOST must be set}"
+    if [ -z "${GL_TOKEN}" ] && [ -n "${GL_TOKEN_FILE}" ]; then
+      GL_TOKEN="$(cat "${GL_TOKEN_FILE}")"
+    fi
+    GL_TOKEN="${GL_TOKEN:?GL_TOKEN or GL_TOKEN_FILE must be set}"
+    if [ -n "${VAR_DESCRIPTION}" ]; then
+      PAYLOAD="{\"value\":\"${GL_NEW_TOKEN}\",\"description\":\"${VAR_DESCRIPTION}\"}"
+    else
+      PAYLOAD="{\"value\":\"${GL_NEW_TOKEN}\"}"
+    fi
+    RESP="$(wget -qO- --no-check-certificate \
+      --header "PRIVATE-TOKEN: ${GL_TOKEN}" \
+      --header "X-HTTP-Method-Override: PUT" \
+      --header "Content-Type: application/json" \
+      --post-data "${PAYLOAD}" \
+      "${GITLAB_HOST}/api/v4/admin/ci/variables/${VAR_NAME}")" || {
+      echo "gitlab instance var write failed for ${VAR_NAME}: ${RESP:-no response}" >&2
+      exit 1
+    }
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -29,7 +95,39 @@ data:
                     KV_PATH: gitlab/tokens/renovatebot-test
                     VAULT_ADDR: ${VAULT_ADDR}
                     VAULT_TOKEN_FILE: ${VAULT_TOKEN_FILE}
+              - type: update_var
+                args:
+                  type: repository
+                  path: poc/renovate-helm-test
+                  name: RENOVATE_TEST_PATATE
+              - type: exec_cmd
+                args:
+                  path: /usr/local/bin/gitlab-instance-var-put.sh
+                  env:
+                    VAR_NAME: RENOVATE_TEST_PATATE
+                    VAR_DESCRIPTION: "Managed by gitlab token updater. Belongs to PAT from user RenovateBot-Test/renovatebot-test"
+                    GITLAB_HOST: ${GITLAB_HOST}
+                    GL_TOKEN_FILE: ${GL_TOKEN_FILE}
+
+          - name: registry-token
+            hooks:
+              - type: exec_cmd
+                args:
+                  path: /usr/local/bin/vault-put.sh
+                  env:
+                    KV_PATH: gitlab/tokens/registry-token
+                    VAULT_ADDR: ${VAULT_ADDR}
+                    VAULT_TOKEN_FILE: ${VAULT_TOKEN_FILE}
+              - type: exec_cmd
+                args:
+                  path: /usr/local/bin/gitlab-instance-var-put.sh
+                  env:
+                    VAR_NAME: DOCKER_REGISTRY_TOKEN
+                    VAR_DESCRIPTION: "Managed by gitlab token updater. Belongs to PAT from user DockerRegistryCache/registry-token"
+                    GITLAB_HOST: ${GITLAB_HOST}
+                    GL_TOKEN_FILE: ${GL_TOKEN_FILE}
 ---
+# 1. Force rotation of renovatebot-test
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -44,7 +142,7 @@ spec:
       volumes:
         - {name: tokens, emptyDir: {}}
         - {name: manifest, configMap: {name: gtu-manifest-test}}
-        - {name: scripts, configMap: {name: gitlab-token-updater-scripts, defaultMode: 0755}}
+        - {name: scripts, configMap: {name: gtu-scripts-test, defaultMode: 0755}}
       initContainers:
         - name: vault-login
           image: hashicorp/vault:latest
@@ -63,6 +161,7 @@ spec:
       containers:
         - name: rotator
           image: gitlab-registry-internal.spirit-dev.net/infrastructure/docker/gitlab-token-updater:latest
+          imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -72,6 +171,151 @@ spec:
             - {name: tokens, mountPath: /tmp/tokens, readOnly: true}
             - {name: manifest, mountPath: /etc/gitlab-token-updater, readOnly: true}
             - {name: scripts, mountPath: /usr/local/bin, readOnly: true}
+          env:
+            - {name: VAULT_ADDR, value: "http://192.168.0.52:8200"}
+            - {name: VAULT_TOKEN_FILE, value: /tmp/tokens/vault-token}
+            - {name: GL_TOKEN_FILE, value: /tmp/tokens/gl-token}
+            - {name: GITLAB_HOST, value: "https://gitlab-internal.spirit-dev.net"}
+---
+# 2. Force rotation of registry-token
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gtu-force-registry-test
+  namespace: gitlab-next
+spec:
+  template:
+    spec:
+      serviceAccountName: gitlab-token-updater
+      restartPolicy: Never
+      imagePullSecrets: [{name: gitlab-registry-key}]
+      volumes:
+        - {name: tokens, emptyDir: {}}
+        - {name: manifest, configMap: {name: gtu-manifest-test}}
+        - {name: scripts, configMap: {name: gtu-scripts-test, defaultMode: 0755}}
+      initContainers:
+        - name: vault-login
+          image: hashicorp/vault:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              export VAULT_ADDR="http://192.168.0.52:8200"
+              SA=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VT=$(vault write -field=token auth/kubernetes/login role=rotator jwt="$SA")
+              export VAULT_TOKEN="$VT"
+              echo "$VT" > /tmp/tokens/vault-token
+              GL=$(vault kv get -field=value gitlab/tokens/rotator-pat-a 2>/dev/null || vault kv get -field=value gitlab/tokens/rotator-pat-b)
+              echo "$GL" > /tmp/tokens/gl-token
+          volumeMounts: [{name: tokens, mountPath: /tmp/tokens}]
+      containers:
+        - name: rotator
+          image: gitlab-registry-internal.spirit-dev.net/infrastructure/docker/gitlab-token-updater:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export GL_RENEWER_TOKEN=$(cat /tmp/tokens/gl-token)
+              exec gitlab-token-updater -c /etc/gitlab-token-updater/config.yml --force
+          volumeMounts:
+            - {name: tokens, mountPath: /tmp/tokens, readOnly: true}
+            - {name: manifest, mountPath: /etc/gitlab-token-updater, readOnly: true}
+            - {name: scripts, mountPath: /usr/local/bin, readOnly: true}
+          env:
+            - {name: VAULT_ADDR, value: "http://192.168.0.52:8200"}
+            - {name: VAULT_TOKEN_FILE, value: /tmp/tokens/vault-token}
+            - {name: GL_TOKEN_FILE, value: /tmp/tokens/gl-token}
+            - {name: GITLAB_HOST, value: "https://gitlab-internal.spirit-dev.net"}
+---
+# 3. Vault Unreachable Failure Visibility Test
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gtu-fail-unreachable-test
+  namespace: gitlab-next
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: gitlab-token-updater
+      restartPolicy: Never
+      imagePullSecrets: [{name: gitlab-registry-key}]
+      volumes:
+        - {name: tokens, emptyDir: {}}
+        - {name: manifest, configMap: {name: gtu-manifest-test}}
+      initContainers:
+        - name: vault-login
+          image: hashicorp/vault:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "=== Attempting login to unreachable Vault address ==="
+              export VAULT_ADDR="http://192.168.0.52:8201"
+              export VAULT_CLIENT_TIMEOUT="5s"
+              SA=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              vault write -field=token auth/kubernetes/login role=rotator jwt="$SA"
+          volumeMounts: [{name: tokens, mountPath: /tmp/tokens}]
+      containers:
+        - name: rotator
+          image: gitlab-registry-internal.spirit-dev.net/infrastructure/docker/gitlab-token-updater:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args: ["echo 'Should not reach here'"]
+          volumeMounts:
+            - {name: tokens, mountPath: /tmp/tokens, readOnly: true}
+            - {name: manifest, mountPath: /etc/gitlab-token-updater, readOnly: true}
+---
+# 4. A/B Fallback Recovery Test (Path A missing -> falls back to Path B)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gtu-ab-fallback-test
+  namespace: gitlab-next
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: gitlab-token-updater
+      restartPolicy: Never
+      imagePullSecrets: [{name: gitlab-registry-key}]
+      volumes:
+        - {name: tokens, emptyDir: {}}
+        - {name: manifest, configMap: {name: gtu-manifest-test}}
+      initContainers:
+        - name: vault-login
+          image: hashicorp/vault:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              export VAULT_ADDR="http://192.168.0.52:8200"
+              SA=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              VT=$(vault write -field=token auth/kubernetes/login role=rotator jwt="$SA")
+              echo "$VT" > /tmp/tokens/vault-token
+
+              echo "=== Testing A/B fallback: Path A is missing, trying B ==="
+              GL=$(VAULT_TOKEN="$VT" vault kv get -field=value "gitlab/tokens/non-existent-pat" 2>/dev/null || true)
+              if [ -z "${GL}" ]; then
+                echo "Path A empty/missing, trying B..."
+                GL=$(VAULT_TOKEN="$VT" vault kv get -field=value "gitlab/tokens/rotator-pat-b")
+              fi
+              GL="${GL:?No GitLab token found at either path}"
+              echo "$GL" > /tmp/tokens/gl-token
+              echo "Token fetch complete via Path B fallback!"
+          volumeMounts: [{name: tokens, mountPath: /tmp/tokens}]
+      containers:
+        - name: rotator
+          image: gitlab-registry-internal.spirit-dev.net/infrastructure/docker/gitlab-token-updater:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export GL_RENEWER_TOKEN=$(cat /tmp/tokens/gl-token)
+              exec gitlab-token-updater -c /etc/gitlab-token-updater/config.yml --dry-run
+          volumeMounts:
+            - {name: tokens, mountPath: /tmp/tokens, readOnly: true}
+            - {name: manifest, mountPath: /etc/gitlab-token-updater, readOnly: true}
           env:
             - {name: VAULT_ADDR, value: "http://192.168.0.52:8200"}
             - {name: VAULT_TOKEN_FILE, value: /tmp/tokens/vault-token}

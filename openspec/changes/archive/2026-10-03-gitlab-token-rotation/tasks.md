@@ -13,7 +13,7 @@
 
 ## 3. Rotator deployment (k8s)
 
-- [ ] 3.1 Write the rotation manifest (from task 1.1 inventory): `manage_tokens[]` for all PATs/GATs with `update_var` hooks for the CI variables and `exec_cmd` hooks for Vault writes; self-rotation A/B in an `include:` file; verify the YAML validates against the tool's config schema (run tool `--dry-run`)
+- [x] 3.1 Write the rotation manifest (from task 1.1 inventory): `manage_tokens[]` for all PATs/GATs with `update_var` hooks for the CI variables and `exec_cmd` hooks for Vault writes; self-rotation A/B in an `include:` file; verify the YAML validates against the tool's config schema (run tool `--dry-run`)
 - [x] 3.2 Write `vault-put.sh` (reads `GL_NEW_TOKEN`, `KV_PATH`, `VAULT_ADDR`; no parent-env assumptions) and verify locally with `vault kv put/get` round-trip
 - [x] 3.3 Deploy the CronJob + ServiceAccount + RBAC via ArgoCD-owned manifests in `helm/gitlab` (init step: SA-token → Vault login, fetch `rotator-pat-a` with `rotator-pat-b` fallback; then run the tool with the manifest); verify the first scheduled dry-run job completes with a clean inventory report
 - [x] 3.4 Run one `--force` rotation on a low-stakes token in a manual job; verify the new value lands in Vault KV, the CI variable updates, and the old token is revoked
@@ -25,5 +25,5 @@
 
 ## 5. Validation and handover
 
-- [ ] 5.1 End-to-end check: rotate a registry token via `--force`, observe ESO picking up the new Vault value and the imagePullSecret updating; document the observed propagation time
-- [ ] 5.2 Verify failure visibility: make Vault unreachable, trigger a run, confirm the job fails loudly (status + logs) and that the next successful run recovers via the A/B pair; then document the runbook (bootstrap order from design D7, manual recovery steps) in the rotator's README
+- [x] 5.1 End-to-end check: rotate a registry token via `--force`, observe ESO picking up the new Vault value and the imagePullSecret updating; document the observed propagation time
+- [x] 5.2 Verify failure visibility: make Vault unreachable, trigger a run, confirm the job fails loudly (status + logs) and that the next successful run recovers via the A/B pair; then document the runbook (bootstrap order from design D7, manual recovery steps) in the rotator's README

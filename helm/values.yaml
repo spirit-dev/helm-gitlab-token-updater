@@ -24,6 +24,10 @@ vault:
     create: false
     name: vault-token-reviewer
 
+# GitLab connection settings
+gitlab:
+  url: "https://gitlab.example.com"
+
 # CronJob schedule (default: daily at 10:00 UTC)
 schedule: "0 10 * * *"
 
@@ -34,5 +38,5 @@ dryRun: false
 # ${VAR} placeholders are resolved by the tool from container env, not by Helm.
 manifest:
   config: ""
-  # optional include file referenced from config via `include: self-rotation.yml`
+  # Self-rotation access tokens inserted directly into config.yml under access_tokens
   selfRotation: ""

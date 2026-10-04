@@ -8,3 +8,5 @@ metadata:
 data:
   vault-put.sh: |
 {{ .Files.Get "scripts/vault-put.sh" | indent 4 }}
+  gitlab-instance-var-put.sh: |
+{{ .Files.Get "scripts/gitlab-instance-var-put.sh" | indent 4 }}
