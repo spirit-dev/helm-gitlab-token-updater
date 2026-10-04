@@ -36,7 +36,7 @@ template: ## Helm template
 	@${HELM_BIN} template --dependency-update ${RELEASE_NAME} ${HELM_CHART_DIR} --namespace ${NAMESPACE} -f ${HELM_CHART_DIR}/values.${ENV}.yaml
 dry-run: template warning ## Template plus dry-run of the helm chart
 	@${HELM_BIN} upgrade --dry-run ${SET_FORCE} --install --namespace ${NAMESPACE} -f ${HELM_CHART_DIR}/values.${ENV}.yaml ${RELEASE_NAME} ${HELM_CHART_DIR}
-install: ## Helm intallation
+install: warning ## Helm intallation
 	@${HELM_BIN} upgrade ${SET_FORCE} --install --namespace ${NAMESPACE} --create-namespace -f ${HELM_CHART_DIR}/values.${ENV}.yaml ${RELEASE_NAME} ${HELM_CHART_DIR}
 logs: ## Get pod logs
 	@kubectl logs --since=1h -f -n ${NAMESPACE} $(pod)
