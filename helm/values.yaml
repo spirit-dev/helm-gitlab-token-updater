@@ -1,0 +1,42 @@
+image:
+  repository: iomarmochtar/gitlab-token-updater
+  pullPolicy: IfNotPresent
+  tag: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Vault connection settings
+vault:
+  addr: "http://vault.local:8200"
+  kubernetesRole: "rotator"
+  tokenPathA: "gitlab/tokens/rotator-pat-a"
+  tokenPathB: "gitlab/tokens/rotator-pat-b"
+  # ServiceAccount whose long-lived token Vault uses for TokenReview
+  # (kubernetes auth config: token_reviewer_jwt). Create=false by default;
+  # enable in env values when Vault runs outside the cluster.
+  tokenReviewer:
+    create: false
+    name: vault-token-reviewer
+
+# GitLab connection settings
+gitlab:
+  url: "https://gitlab.example.com"
+
+# CronJob schedule (default: daily at 10:00 UTC)
+schedule: "0 10 * * *"
+
+# Run tool in --dry-run mode (read-only inventory validation)
+dryRun: false
+
+# Rotator manifests (gitlab-token-updater config, rendered into a ConfigMap).
+# ${VAR} placeholders are resolved by the tool from container env, not by Helm.
+manifest:
+  config: ""
+  # Self-rotation access tokens inserted directly into config.yml under access_tokens
+  selfRotation: ""

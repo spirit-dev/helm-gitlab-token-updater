@@ -1,0 +1,17 @@
+apiVersion: v2
+name: gitlab-token-updater
+description: A Helm chart for automated GitLab token rotation with fan-out to Vault and CI/CD variables
+home: https://gitlab.local.lan/infrastructure/helm/gitlab-token-updater
+sources:
+  - https://gitlab.local.lan/infrastructure/helm/gitlab-token-updater
+
+type: application
+
+version: 1.0.0
+appVersion: "latest"
+
+keywords:
+  - gitlab
+  - token
+  - rotation
+  - vault

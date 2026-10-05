@@ -1,0 +1,12 @@
+{{- $ns := .Release.Namespace }}
+{{- with .Values.image.registry }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-registry-key
+  namespace: {{ $ns }}
+data:
+  .dockerconfigjson: {{ printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\"}}}" .url .username .password | b64enc }}
+type: kubernetes.io/dockerconfigjson
+{{- end }}
