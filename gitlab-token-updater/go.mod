@@ -6,9 +6,11 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v2 v2.27.7
+	github.com/urfave/cli/v3 v3.14.0
 	github.com/xanzy/go-gitlab v0.115.0
 	go.uber.org/mock v0.6.0
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -27,5 +29,4 @@ require (
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
