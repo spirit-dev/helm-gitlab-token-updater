@@ -1,4 +1,4 @@
-FROM goreleaser/goreleaser:v2.18.2@sha256:7077423cf5ef643ff56a34b58f93c1364e927e5c3dfa470eeabc44cab1a9c72b AS builder
+FROM goreleaser/goreleaser:v2.18.3@sha256:b61a4eedf5e3b1d283792dade34ee0f8c6cce3e6f1f65851d3b397b8f8a75b6d AS builder
 WORKDIR /build
 COPY . .
 RUN goreleaser build --clean --single-target
