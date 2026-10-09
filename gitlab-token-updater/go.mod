@@ -5,11 +5,11 @@ go 1.23.1
 require (
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
-	github.com/urfave/cli/v2 v2.27.7
+	github.com/urfave/cli/v3 v3.14.0
 	github.com/urfave/cli/v3 v3.14.0
 	github.com/xanzy/go-gitlab v0.115.0
 	go.uber.org/mock v0.6.0
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
