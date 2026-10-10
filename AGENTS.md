@@ -1,3 +1,4 @@
+<!-- dox-upstream: 765ae4ac02cc884eefcd41a3d0f71941721adb89 | updated: 2026-10-09 -->
 # DOX framework
 
 - DOX is highly performant AGENTS.md hierarchy installed here
