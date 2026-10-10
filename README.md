@@ -1,14 +1,8 @@
 # gitlab-token-updater
 
-[![GitLab Sync](https://img.shields.io/badge/gitlab_sync-gitlab_token_updater-blue?style=for-the-badge&logo=gitlab)](https://gitlab-internal.spirit-dev.net/github-mirror/helm-gitlab-token-updater) <!-- markdownlint-disable MD041 -->
-[![GitHub Mirror](https://img.shields.io/badge/github_mirror-gitlab_token_updater-blue?style=for-the-badge&logo=github)](https://github.com/spirit-dev/helm-gitlab-token-updater)
-[![App Status](https://argocd-internal.spirit-dev.net/api/badge?name=gitlab-token-updater-turingpi&revision=true&showAppName=true)](https://argocd-internal.spirit-dev.net/applications/gitlab-token-updater-turingpi)
+
 
 <!--TOC-->
-
-______________________________________________________________________
-
-**Table of Contents**
 
 - [Installation process](#installation-process)
 - [Rotation Hooks](#rotation-hooks)
@@ -21,8 +15,6 @@ ______________________________________________________________________
   - [2. Lockout Recovery & Troubleshooting](#2-lockout-recovery--troubleshooting)
     - [A. Automatic A/B Pair Recovery](#a-automatic-ab-pair-recovery)
     - [B. Emergency Total Lockout (Both A & B Invalid)](#b-emergency-total-lockout-both-a--b-invalid)
-
-______________________________________________________________________
 
 <!--TOC-->
 
@@ -215,4 +207,4 @@ If both tokens expire simultaneously or were manually revoked:
    kubectl -n gitlab-next create job --from=cronjob/gitlab-token-updater gtu-manual-recovery
    kubectl -n gitlab-next logs -f job/gtu-manual-recovery -c rotator
    ```
-6. The job authenticates using `rotator-pat-a`, rotates `rotator-pat-b`, and normal operation resu
+6. The job authenticates using `rotator-pat-a`, rotates `rotator-pat-b`, and normal operation res
